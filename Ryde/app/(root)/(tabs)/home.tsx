@@ -2,8 +2,9 @@ import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
 import { icons, images } from "@/constants";
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-expo";
+import { Link, router } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,18 +14,25 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location";
+import {
+  setDestinationLocation,
+  setUserLocation,
+} from "@/features/ride/userSlice";
+import { useAppDispatch, useAppSelector } from "@/hooks/typedHooks";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 const recentRides = [
   {
     ride_id: "1",
     origin_address: "Kathmandu, Nepal",
     destination_address: "Pokhara, Nepal",
-    origin_latitude: "27.717245",
-    origin_longitude: "85.323961",
-    destination_latitude: "28.209583",
-    destination_longitude: "83.985567",
+    origin_latitude: 27.717245,
+    origin_longitude: 85.323961,
+    destination_latitude: 28.209583,
+    destination_longitude: 83.985567,
     ride_time: 391,
-    fare_price: "19500.00",
+    fare_price: 19500.0,
     payment_status: "paid",
     driver_id: 2,
     user_id: "1",
@@ -45,12 +53,12 @@ const recentRides = [
     ride_id: "2",
     origin_address: "Jalkot, MH",
     destination_address: "Pune, Maharashtra, India",
-    origin_latitude: "18.609116",
-    origin_longitude: "77.165873",
-    destination_latitude: "18.520430",
-    destination_longitude: "73.856744",
+    origin_latitude: 18.609116,
+    origin_longitude: 77.165873,
+    destination_latitude: 18.52043,
+    destination_longitude: 73.856744,
     ride_time: 491,
-    fare_price: "24500.00",
+    fare_price: 24500.0,
     payment_status: "paid",
     driver_id: 1,
     user_id: "1",
@@ -71,12 +79,12 @@ const recentRides = [
     ride_id: "3",
     origin_address: "Zagreb, Croatia",
     destination_address: "Rijeka, Croatia",
-    origin_latitude: "45.815011",
-    origin_longitude: "15.981919",
-    destination_latitude: "45.327063",
-    destination_longitude: "14.442176",
+    origin_latitude: 45.815011,
+    origin_longitude: 15.981919,
+    destination_latitude: 45.327063,
+    destination_longitude: 14.442176,
     ride_time: 124,
-    fare_price: "6200.00",
+    fare_price: 6200.0,
     payment_status: "paid",
     driver_id: 1,
     user_id: "1",
@@ -97,12 +105,12 @@ const recentRides = [
     ride_id: "4",
     origin_address: "Okayama, Japan",
     destination_address: "Osaka, Japan",
-    origin_latitude: "34.655531",
-    origin_longitude: "133.919795",
-    destination_latitude: "34.693725",
-    destination_longitude: "135.502254",
+    origin_latitude: 34.655531,
+    origin_longitude: 133.919795,
+    destination_latitude: 34.693725,
+    destination_longitude: 135.502254,
     ride_time: 159,
-    fare_price: "7900.00",
+    fare_price: 7900.0,
     payment_status: "paid",
     driver_id: 3,
     user_id: "1",
@@ -123,19 +131,57 @@ const recentRides = [
 
 export default function Page() {
   const { user } = useUser();
+  const [hasPermissions, setHasPermissions] = useState(false);
   const loading = false;
+  const dispatch = useAppDispatch();
+  const { signOut } = useAuth();
 
-  console.log(user);
+  const handleSignOut = async () => {
+    signOut();
+    router.replace("/(auth)/sign-in");
+  };
+  const handleDestinationPress = (location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => {
+    dispatch(setDestinationLocation(location));
+    router.push("../find-ride");
+  };
 
-  const handleSignOut = async () => {};
-  const handleDestinationPress = () => {};
+  useEffect(() => {
+    const requestLocation = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setHasPermissions(false);
+        console.log("Permission to access location was denied");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync();
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      dispatch(
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          address: `${address[0]?.name || ""} ,${address[0]?.region || ""}`,
+        })
+      );
+    };
+
+    requestLocation();
+  }, []);
 
   return (
     <SafeAreaView className="bg-general-500">
       <FlatList
         data={recentRides?.slice(0, 5)}
         renderItem={({ item }) => <RideCard ride={item} />}
-        className="px-5"
+        className="px-4"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={() => (
@@ -155,7 +201,7 @@ export default function Page() {
           </View>
         )}
         ListHeaderComponent={() => (
-          <>
+          <View className=" px-1">
             <View className="flex flex-row items-center justify-between my-5">
               <Text className="text-xl font-JakartaExtraBold text-gray-800 capitalize">
                 Welcome{" , "}
@@ -165,30 +211,30 @@ export default function Page() {
               </Text>
               <TouchableOpacity
                 onPress={handleSignOut}
-                className="justify-center items-center w-10 h-10 rounded-full bg-white"
+                className="justify-center items-center w-10 h-10 rounded-full bg-white "
               >
-                <Image source={icons.out} className="w-8 h-8 " />
+                <FontAwesome name="sign-out" size={30} color="#F59700" />
               </TouchableOpacity>
             </View>
             {/* google text input */}
             <GoogleTextInput
               icon={icons.search}
-              containerStyle="bg-white shadow-md shadow-neutral-300 "
+              containerStyle="bg-white shadow-xl  shadow-neutral-600 "
               handlePress={handleDestinationPress}
             />
 
-            <>
+            <View>
               <Text className="text-xl font-JakartaBold mt-5 mb-3">
                 Your Current Location
               </Text>
               <View className="flex flex-row items-center bg-transparent h-[300px]">
                 <Map />
               </View>
-            </>
+            </View>
             <Text className="text-xl font-JakartaBold mt-5 mb-3">
               Recent Rides
             </Text>
-          </>
+          </View>
         )}
       />
     </SafeAreaView>

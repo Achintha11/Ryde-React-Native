@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { Slot } from "expo-router";
+import * as Linking from "expo-linking";
 
 export interface TokenCache {
   getToken: (key: string) => Promise<string | undefined | null>;
@@ -31,4 +32,30 @@ export const tokenCache = {
       return;
     }
   },
+};
+
+export const googleOAuth = async (startOAuthFlow: any) => {
+  try {
+    const { createdSessionId, signIn, signUp, setActive } =
+      await startOAuthFlow({
+        redirectUrl: Linking.createURL("/(root)/(tabs)/home", {
+          scheme: "myapp",
+        }),
+      });
+
+    if (createdSessionId) {
+      setActive!({ session: createdSessionId });
+      return {
+        success: true,
+      };
+    } else {
+      return {
+        success: false,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+    };
+  }
 };
