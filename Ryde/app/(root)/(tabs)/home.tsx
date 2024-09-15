@@ -21,6 +21,7 @@ import {
 } from "@/features/ride/userSlice";
 import { useAppDispatch, useAppSelector } from "@/hooks/typedHooks";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import axios from "axios";
 
 const recentRides = [
   {

@@ -1,5 +1,21 @@
 import { LocationStore } from "@/types/type";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
+
+export const createDatabaseUser = createAsyncThunk(
+  "user/createDatabaseUser",
+  async (user: { name: string; email: string; clerkId: string }) => {
+    try {
+      const response = await axios.post(`${BASE_URL}/auth/signup`, user);
+      return response.data;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+);
 
 const initialState: LocationStore = {
   userLatitude: null,

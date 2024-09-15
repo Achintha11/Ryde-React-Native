@@ -16,8 +16,11 @@ import { Link, router } from "expo-router";
 import OAuth from "@/components/OAuth";
 import { useSignUp } from "@clerk/clerk-expo";
 import Modal, { ReactNativeModal } from "react-native-modal";
+import { useAppDispatch } from "@/hooks/typedHooks";
+import { createDatabaseUser } from "@/features/ride/userSlice";
 
 const SignUp = () => {
+  const dispatch = useAppDispatch();
   const { isLoaded, signUp, setActive } = useSignUp();
   const [verification, setVerification] = useState({
     state: "default",
@@ -68,6 +71,13 @@ const SignUp = () => {
       });
 
       if (completeSignUp.status === "complete") {
+        dispatch(
+          createDatabaseUser({
+            name: form.name,
+            email: form.email,
+            clerkId: completeSignUp.createdUserId!,
+          })
+        );
         //Todo : create a database user
         await setActive({ session: completeSignUp.createdSessionId });
         setVerification({ ...verification, state: "success" });
